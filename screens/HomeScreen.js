@@ -1,28 +1,83 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
+  // --- DEĞİŞKENLER (STATE) ---
+  // Varsayılan süre 25 dakika (25 * 60 saniye)
+  const [seconds, setSeconds] = useState(25 * 60);
+  // Sayaç çalışıyor mu? (Başlangıçta hayır)
+  const [isActive, setIsActive] = useState(false);
+
+  // --- SAYAÇ MANTIĞI ---
+  useEffect(() => {
+    let interval = null;
+
+    // Eğer sayaç aktifse ve süre bitmediyse her 1 saniyede bir azalt
+    if (isActive && seconds > 0) {
+      interval = setInterval(() => {
+        setSeconds((prevSeconds) => prevSeconds - 1);
+      }, 1000);
+    } else if (seconds === 0) {
+      // Süre bittiyse durdur
+      setIsActive(false);
+      alert("Süre doldu! Tebrikler.");
+    }
+
+    // Temizlik işlemi 
+    return () => clearInterval(interval);
+  }, [isActive, seconds]);
+
+  // --- YARDIMCI FONKSİYONLAR ---
+  
+  // Saniyeyi "25:00" formatına çeviren fonksiyon
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const remainingSeconds = timeInSeconds % 60;
+    // 10'dan küçükse başına 0 koy
+    return `${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  // Başlat / Duraklat butonu 
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+  };
+
+  // Sıfırla butonu 
+  const resetTimer = () => {
+    setIsActive(false);
+    setSeconds(25 * 60); // Tekrar 25 dakikaya döner
+  };
+
   return (
     <View style={styles.container}>
-      {/* Başlık */}
       <Text style={styles.title}>Odaklanma Seansı</Text>
 
-      {/* Sayaç Dairesi ve Süre */}
+      {/* Sayaç Dairesi */}
       <View style={styles.timerContainer}>
-        <Text style={styles.timerText}>25:00</Text>
-        <Text style={styles.statusText}>Hazır mısın?</Text>
+        <Text style={styles.timerText}>{formatTime(seconds)}</Text>
+        
+        <Text style={styles.statusText}>
+          {isActive ? "Odaklanılıyor..." : "Hazır mısın?"}
+        </Text>
       </View>
 
       {/* Butonlar */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.startButton]}>
-          <Text style={styles.buttonText}>Başlat</Text>
+        {/* Başlat Butonu (Aktifse 'Duraklat' yazar değilse 'Başlat') */}
+        <TouchableOpacity 
+          style={[styles.button, isActive ? styles.pauseButton : styles.startButton]} 
+          onPress={toggleTimer}
+        >
+          <Text style={styles.buttonText}>
+            {isActive ? "Duraklat" : "Başlat"}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.pauseButton]}>
-          <Text style={styles.buttonText}>Duraklat</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.button, styles.resetButton]}>
+        {/* Sıfırla Butonu */}
+        <TouchableOpacity 
+          style={[styles.button, styles.resetButton]} 
+          onPress={resetTimer}
+        >
           <Text style={styles.buttonText}>Sıfırla</Text>
         </TouchableOpacity>
       </View>
@@ -30,7 +85,6 @@ export default function HomeScreen() {
   );
 }
 
-// Tasarım (CSS benzeri) Kodları
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -47,9 +101,9 @@ const styles = StyleSheet.create({
   timerContainer: {
     width: 250,
     height: 250,
-    borderRadius: 125, // Tam daire yapmak için genişliğin yarısı
+    borderRadius: 125,
     borderWidth: 5,
-    borderColor: '#4A90E2', // Mavi çerçeve
+    borderColor: '#4A90E2',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
@@ -66,28 +120,28 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonContainer: {
-    flexDirection: 'row', // Butonları yan yana diz
-    gap: 10,
+    flexDirection: 'row',
+    gap: 15,
   },
   button: {
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     borderRadius: 25,
-    minWidth: 100,
+    minWidth: 120,
     alignItems: 'center',
   },
   startButton: {
-    backgroundColor: '#4CAF50', // Yeşil
+    backgroundColor: '#4CAF50', 
   },
   pauseButton: {
-    backgroundColor: '#FF9800', // Turuncu
+    backgroundColor: '#FF9800', 
   },
   resetButton: {
-    backgroundColor: '#F44336', // Kırmızı
+    backgroundColor: '#F44336', 
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
   },
 });
