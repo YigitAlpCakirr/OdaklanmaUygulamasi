@@ -1,16 +1,45 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
   // --- DEĞİŞKENLER (STATE) ---
   const [seconds, setSeconds] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
-  
-
   const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
+  
+  const [distractionCount, setDistractionCount] = useState(0);
 
-  // Sabit Kategori Listesi
-  const CATEGORIES = ['Ders Çalışma', 'Kodlama', 'Kitap Okuma', 'Spor', 'Yürüyüş', 'Meditasyon'];
+  const appState = useRef(AppState.currentState);
+
+  const CATEGORIES = [
+    'Ders Çalışma', 
+    'Kodlama', 
+    'Tasarım',
+    'Yabancı Dil',
+    'Kitap Okuma', 
+    'Spor'
+  ];
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      // Eğer uygulama arka plana (background) atılırsa ve sayaç çalışıyorsa:
+      if (
+        appState.current.match(/active/) && 
+        (nextAppState === 'background' || nextAppState === 'inactive')
+      ) {
+        if (isActive) {
+          setIsActive(false); // Sayacı durdur
+          setDistractionCount(prev => prev + 1); // Ceza puanı ekle
+        }
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isActive]);
 
   // --- SAYAÇ MANTIĞI ---
   useEffect(() => {
@@ -21,10 +50,10 @@ export default function HomeScreen() {
       }, 1000);
     } else if (seconds === 0) {
       setIsActive(false);
-      alert(`${selectedCategory} süresi doldu! Tebrikler.`);
+      alert(`${selectedCategory} süresi doldu!`);
     }
     return () => clearInterval(interval);
-  }, [isActive, seconds, selectedCategory]);
+  }, [isActive, seconds]);
 
   // --- YARDIMCI FONKSİYONLAR ---
   const formatTime = (timeInSeconds) => {
@@ -38,29 +67,24 @@ export default function HomeScreen() {
   const resetTimer = () => {
     setIsActive(false);
     setSeconds(25 * 60);
+    setDistractionCount(0); // Sayacı sıfırlarken cezaları da sil
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Odaklanma Seansı</Text>
 
-      {/* YENİ: Kategori Seçim Alanı */}
+      {/* Kategori Seçim Alanı */}
       <View style={styles.categoryWrapper}>
         <Text style={styles.label}>Ne üzerinde çalışıyorsun?</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryContainer}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity 
               key={cat} 
-              style={[
-                styles.catButton, 
-                selectedCategory === cat && styles.selectedCatButton // Seçiliyse stil değişir
-              ]}
+              style={[styles.catButton, selectedCategory === cat && styles.selectedCatButton]}
               onPress={() => setSelectedCategory(cat)}
             >
-              <Text style={[
-                styles.catText, 
-                selectedCategory === cat && styles.selectedCatText
-              ]}>
+              <Text style={[styles.catText, selectedCategory === cat && styles.selectedCatText]}>
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -72,8 +96,12 @@ export default function HomeScreen() {
       <View style={styles.timerContainer}>
         <Text style={styles.timerText}>{formatTime(seconds)}</Text>
         <Text style={styles.statusText}>
-          {isActive ? `${selectedCategory} yapılıyor...` : "Başlamak için dokun"}
+          {isActive ? "Odaklanılıyor..." : "Hazır mısın?"}
         </Text>
+      </View>
+
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsText}>Odak Bozulma: <Text style={styles.errorText}>{distractionCount}</Text></Text>
       </View>
 
       {/* Butonlar */}
@@ -99,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 50, // Üstten biraz boşluk
+    paddingTop: 40,
   },
   title: {
     fontSize: 24,
@@ -107,75 +135,42 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#333',
   },
-  // --- YENİ KATEGORİ STİLLERİ ---
   categoryWrapper: {
-    height: 100, // Sabit yükseklik
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  label: {
-    fontSize: 14,
-    color: '#888',
+    height: 80,
     marginBottom: 10,
+    alignItems: 'center',
   },
-  categoryContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 10,
-  },
+  label: { fontSize: 14, color: '#888', marginBottom: 8 },
+  categoryContainer: { flexDirection: 'row', gap: 10, paddingHorizontal: 10 },
   catButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    height: 40, // Buton yüksekliği
+    paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20,
+    backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#ddd', height: 40,
   },
-  selectedCatButton: {
-    backgroundColor: '#4A90E2', // Seçilince mavi olsun
-    borderColor: '#4A90E2',
-  },
-  catText: {
-    color: '#555',
-    fontSize: 14,
-  },
-  selectedCatText: {
-    color: '#fff', // Seçilince yazı beyaz olsun
-    fontWeight: 'bold',
-  },
-  // -----------------------------
+  selectedCatButton: { backgroundColor: '#4A90E2', borderColor: '#4A90E2' },
+  catText: { color: '#555', fontSize: 14 },
+  selectedCatText: { color: '#fff', fontWeight: 'bold' },
+  
   timerContainer: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    borderWidth: 5,
-    borderColor: '#4A90E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
-    backgroundColor: '#f0f8ff',
+    width: 240, height: 240, borderRadius: 120, borderWidth: 5, borderColor: '#4A90E2',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 20, backgroundColor: '#f0f8ff',
   },
-  timerText: {
-    fontSize: 55,
-    fontWeight: 'bold',
-    color: '#333',
+  timerText: { fontSize: 55, fontWeight: 'bold', color: '#333' },
+  statusText: { fontSize: 14, color: '#666', marginTop: 10 },
+
+  statsContainer: {
+    marginBottom: 30,
+    padding: 10,
+    backgroundColor: '#fff0f0',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ffcdd2'
   },
-  statusText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 15,
-  },
+  statsText: { fontSize: 16, color: '#555' },
+  errorText: { color: 'red', fontWeight: 'bold', fontSize: 18 },
+
+  buttonContainer: { flexDirection: 'row', gap: 15 },
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    minWidth: 120,
-    alignItems: 'center',
+    paddingVertical: 12, paddingHorizontal: 30, borderRadius: 25, minWidth: 120, alignItems: 'center',
   },
   startButton: { backgroundColor: '#4CAF50' },
   pauseButton: { backgroundColor: '#FF9800' },
