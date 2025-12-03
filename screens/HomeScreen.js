@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { saveFocusSession } from '../utils/storage';
 
 export default function HomeScreen() {
   // --- DEĞİŞKENLER (STATE) ---
-  const [seconds, setSeconds] = useState(25 * 60);
+  const [seconds, setSeconds] = useState(25 * 60); 
   const [isActive, setIsActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
   
@@ -20,6 +21,7 @@ export default function HomeScreen() {
     'Spor'
   ];
 
+  // DİKKAT DAĞINIKLIĞI 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
       // Eğer uygulama arka plana (background) atılırsa ve sayaç çalışıyorsa:
@@ -49,11 +51,33 @@ export default function HomeScreen() {
         setSeconds((prevSeconds) => prevSeconds - 1);
       }, 1000);
     } else if (seconds === 0) {
-      setIsActive(false);
-      alert(`${selectedCategory} süresi doldu!`);
+      handleSessionComplete();
     }
     return () => clearInterval(interval);
   }, [isActive, seconds]);
+
+  // OTURUM TAMAMLAMA VE KAYDETME 
+  const handleSessionComplete = async () => {
+    setIsActive(false); 
+
+    const totalDuration = 25 * 60;
+
+    const sessionData = {
+      id: Date.now().toString(),      
+      date: new Date().toISOString(),  
+      category: selectedCategory,     
+      duration: totalDuration,         
+      distractionCount: distractionCount 
+    };
+
+    await saveFocusSession(sessionData);
+
+    Alert.alert(
+      "Tebrikler!",
+      `Oturum başarıyla kaydedildi.\n\nKategori: ${selectedCategory}\nDikkat Dağınıklığı: ${distractionCount}`,
+      [{ text: "Tamam", onPress: () => resetTimer() }]
+    );
+  };
 
   // --- YARDIMCI FONKSİYONLAR ---
   const formatTime = (timeInSeconds) => {
