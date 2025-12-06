@@ -40,14 +40,14 @@ export default function HomeScreen() {
     return () => subscription.remove();
   }, [isActive, isSessionStarted]);
 
-  // --- SAYAÇ ---
+  // --- SAYAÇ MANTIĞI (DÜZELTİLDİ) ---
   useEffect(() => {
     let interval = null;
     if (isActive && seconds > 0) {
       interval = setInterval(() => {
         setSeconds((prevSeconds) => prevSeconds - 1);
       }, 1000);
-    } else if (seconds === 0 && isSessionStarted) {
+    } else if (seconds === 0 && isSessionStarted && isActive) {
       handleSessionComplete();
     }
     return () => clearInterval(interval);
@@ -166,7 +166,6 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.pickerCard}>
             
-            {/* SAAT SÜTUNU */}
             <View style={styles.pickerColumn}>
               <Text style={styles.pickerHeader}>SAAT</Text>
               <View style={styles.pickerWrapper}>
@@ -184,7 +183,6 @@ export default function HomeScreen() {
 
             <Text style={styles.colon}>:</Text>
 
-            {/* DAKİKA SÜTUNU */}
             <View style={styles.pickerColumn}>
               <Text style={styles.pickerHeader}>DAKİKA</Text>
               <View style={styles.pickerWrapper}>
@@ -244,7 +242,7 @@ const styles = StyleSheet.create({
   mainContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   pickerCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     width: width - 40,
     borderRadius: 24,
@@ -254,7 +252,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#F3F4F6'
   },
   
-  // --- KRİTİK DEĞİŞİKLİK: SABİT GENİŞLİK ---
   pickerColumn: { 
     width: PICKER_WIDTH, 
     alignItems: 'center',

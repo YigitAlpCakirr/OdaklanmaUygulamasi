@@ -37,11 +37,19 @@ export default function ReportsScreen() {
           style: "destructive", 
           onPress: async () => {
             await clearAllSessions();
-            loadData(); 
+            loadData();
           }
         }
       ]
     );
+  };
+
+  // --- SÜRE FORMATLAYICI  ---
+  const formatDuration = (totalSeconds) => {
+    if (!totalSeconds) return "0s0dk";
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${hours}s${minutes}dk`;
   };
 
   const calculateStats = (data) => {
@@ -74,39 +82,42 @@ export default function ReportsScreen() {
         todaySeconds += session.duration;
       }
 
+      // Kategori
       if (categoryMap[session.category]) {
         categoryMap[session.category] += session.duration;
       } else {
         categoryMap[session.category] = session.duration;
       }
 
+      // Günlük
       if (last7DaysMap[sessionDateStr]) {
         last7DaysMap[sessionDateStr].value += session.duration;
       }
     });
 
-    // --- PASTA GRAFİĞİ (YÜZDELİK HESAPLAMA) ---
+    // --- PASTA GRAFİK VERİSİ ---
     const pieColors = ['#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#ffeaa7', '#fab1a0'];
     const pieChartData = Object.keys(categoryMap).map((cat, index) => {
       const catSeconds = categoryMap[cat];
-      const percentage = totalSeconds > 0 ? ((catSeconds / totalSeconds) * 100).toFixed(1) : 0;
+      const percentage = totalSeconds > 0 ? Math.round((catSeconds / totalSeconds) * 100) : 0;
       
       return {
-        name: `${cat} (%${percentage})`, 
-        population: parseFloat((catSeconds / 60).toFixed(2)), 
+        name: cat, 
+        population: catSeconds, 
         color: pieColors[index % pieColors.length],
         legendFontColor: "#7f7f7f",
-        legendFontSize: 12
+        legendFontSize: 12,
+        percentage: percentage 
       };
     });
 
-    // --- ÇUBUK GRAFİK (DAKİKA) ---
+    // Çubuk Grafik (Dakika cinsinden)
     const barLabels = Object.values(last7DaysMap).map(item => item.label);
     const barValues = Object.values(last7DaysMap).map(item => parseFloat((item.value / 60).toFixed(1))); 
 
     setStats({
-      todayFocus: (todaySeconds / 60).toFixed(1), 
-      totalFocus: (totalSeconds / 60).toFixed(1), 
+      todayFocus: todaySeconds,
+      totalFocus: totalSeconds,
       totalDistractions: totalDistraction,
       pieData: pieChartData,
       barData: {
@@ -124,11 +135,11 @@ export default function ReportsScreen() {
       <View style={styles.summaryContainer}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Bugün</Text>
-          <Text style={styles.cardValue}>{stats.todayFocus} dk</Text>
+          <Text style={styles.cardValue}>{formatDuration(stats.todayFocus)}</Text>
         </View>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Toplam</Text>
-          <Text style={styles.cardValue}>{stats.totalFocus} dk</Text>
+          <Text style={styles.cardValue}>{formatDuration(stats.totalFocus)}</Text>
         </View>
         <View style={[styles.card, styles.dangerCard]}>
           <Text style={styles.cardTitle}>Odak Kaybı</Text>
@@ -136,24 +147,40 @@ export default function ReportsScreen() {
         </View>
       </View>
 
-      {/* 1. PASTA GRAFİK (YÜZDELİK) */}
-      <Text style={styles.chartTitle}>Kategori Dağılımı (%)</Text>
+      {/* 1. PASTA GRAFİK */}
+      <Text style={styles.chartTitle}>Kategori Dağılımı</Text>
+      
       {stats.pieData.length > 0 ? (
-        <PieChart
-          data={stats.pieData}
-          width={screenWidth}
-          height={220}
-          chartConfig={chartConfig}
-          accessor={"population"}
-          backgroundColor={"transparent"}
-          paddingLeft={"15"}
-          absolute 
-        />
+        <View style={styles.pieContainer}>
+          <PieChart
+            data={stats.pieData}
+            width={screenWidth}
+            height={220}
+            chartConfig={chartConfig}
+            accessor={"population"}
+            backgroundColor={"transparent"}
+            paddingLeft={(screenWidth / 4).toString()} 
+            hasLegend={false} 
+            absolute={false}
+          />
+
+          {/* ÖZEL EFSANE (LEGEND) ALANI */}
+          <View style={styles.customLegendContainer}>
+            {stats.pieData.map((item, index) => (
+              <View key={index} style={styles.legendItem}>
+                <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
+                <Text style={styles.legendText}>
+                  %{item.percentage} {item.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
       ) : (
         <Text style={styles.noDataText}>Henüz veri yok.</Text>
       )}
 
-      {/* 2. ÇUBUK GRAFİK (DAKİKA) */}
+      {/* 2. ÇUBUK GRAFİK */}
       <Text style={styles.chartTitle}>Son 7 Gün (Dakika)</Text>
       <BarChart
         data={stats.barData}
@@ -177,7 +204,7 @@ export default function ReportsScreen() {
 const chartConfig = {
   backgroundGradientFrom: "#fff",
   backgroundGradientTo: "#fff",
-  decimalPlaces: 1, 
+  decimalPlaces: 0, 
   color: (opacity = 1) => `rgba(74, 144, 226, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
   barPercentage: 0.7,
@@ -190,11 +217,41 @@ const styles = StyleSheet.create({
   summaryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
   card: { backgroundColor: '#fff', width: '30%', padding: 10, borderRadius: 10, alignItems: 'center', elevation: 3 },
   cardTitle: { fontSize: 12, color: '#888', marginBottom: 5 },
-  cardValue: { fontSize: 16, fontWeight: 'bold', color: '#333' }, 
+  cardValue: { fontSize: 15, fontWeight: 'bold', color: '#333' }, 
   dangerCard: { borderColor: '#ff7675', borderWidth: 1 },
   dangerText: { color: '#d63031' },
 
   chartTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, marginTop: 10, color: '#444' },
+  
+  // Pasta Grafik ve Legend Stilleri
+  pieContainer: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 10, elevation: 2 },
+  
+  customLegendContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap', 
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 15
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+    minWidth: '40%' 
+  },
+  legendColorBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8
+  },
+  legendText: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '600'
+  },
+
   barChart: { borderRadius: 16, marginVertical: 8 },
   noDataText: { textAlign: 'center', color: '#999', marginVertical: 20 },
   
