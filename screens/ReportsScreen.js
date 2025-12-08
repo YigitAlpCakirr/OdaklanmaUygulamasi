@@ -7,6 +7,7 @@ import { clearAllSessions, getFocusSessions } from '../utils/storage';
 const screenWidth = Dimensions.get("window").width;
 
 export default function ReportsScreen() {
+  const [sessions, setSessions] = useState([]);
   const [stats, setStats] = useState({
     todayFocus: 0,
     totalFocus: 0,
@@ -23,6 +24,7 @@ export default function ReportsScreen() {
 
   const loadData = async () => {
     const data = await getFocusSessions();
+    setSessions(data); 
     calculateStats(data);
   };
 
@@ -44,7 +46,6 @@ export default function ReportsScreen() {
     );
   };
 
-  // --- SÜRE FORMATLAYICI  ---
   const formatDuration = (totalSeconds) => {
     if (!totalSeconds) return "0s0dk";
     const hours = Math.floor(totalSeconds / 3600);
@@ -62,7 +63,6 @@ export default function ReportsScreen() {
     const categoryMap = {}; 
     const last7DaysMap = {}; 
 
-    // Son 7 gün şablonu
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
@@ -71,7 +71,6 @@ export default function ReportsScreen() {
       last7DaysMap[dateKey] = { label: dayName, value: 0 };
     }
 
-    // Verileri işle
     data.forEach(session => {
       const sessionDateStr = session.date.split('T')[0];
       
@@ -82,20 +81,17 @@ export default function ReportsScreen() {
         todaySeconds += session.duration;
       }
 
-      // Kategori
       if (categoryMap[session.category]) {
         categoryMap[session.category] += session.duration;
       } else {
         categoryMap[session.category] = session.duration;
       }
 
-      // Günlük
       if (last7DaysMap[sessionDateStr]) {
         last7DaysMap[sessionDateStr].value += session.duration;
       }
     });
 
-    // --- PASTA GRAFİK VERİSİ ---
     const pieColors = ['#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#ffeaa7', '#fab1a0'];
     const pieChartData = Object.keys(categoryMap).map((cat, index) => {
       const catSeconds = categoryMap[cat];
@@ -111,7 +107,6 @@ export default function ReportsScreen() {
       };
     });
 
-    // Çubuk Grafik (Dakika cinsinden)
     const barLabels = Object.values(last7DaysMap).map(item => item.label);
     const barValues = Object.values(last7DaysMap).map(item => parseFloat((item.value / 60).toFixed(1))); 
 
@@ -126,6 +121,10 @@ export default function ReportsScreen() {
       }
     });
   };
+
+  // --- SON 10 SEANSI ALMA ---
+
+  const lastSessions = sessions.slice().reverse().slice(0, 10);
 
   return (
     <ScrollView style={styles.container}>
@@ -163,8 +162,6 @@ export default function ReportsScreen() {
             hasLegend={false} 
             absolute={false}
           />
-
-          {/* ÖZEL EFSANE (LEGEND) ALANI */}
           <View style={styles.customLegendContainer}>
             {stats.pieData.map((item, index) => (
               <View key={index} style={styles.legendItem}>
@@ -192,6 +189,36 @@ export default function ReportsScreen() {
         style={styles.barChart}
         fromZero
       />
+
+      {/* 3. SON 10 SEANS LİSTESİ */}
+      <Text style={styles.chartTitle}>Son 10 Oturum</Text>
+      <View style={styles.historyContainer}>
+        {lastSessions.length > 0 ? (
+          lastSessions.map((item, index) => (
+            <View key={index} style={styles.historyItem}>
+              {/* Sol Taraf: Kategori ve Tarih */}
+              <View>
+                <Text style={styles.historyCategory}>{item.category}</Text>
+                <Text style={styles.historyDate}>
+                  {new Date(item.date).toLocaleDateString('tr-TR')} • {new Date(item.date).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
+                </Text>
+              </View>
+
+              {/* Sağ Taraf: Süre ve Odak Kaybı */}
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.historyDuration}>{formatDuration(item.duration)}</Text>
+                {item.distractionCount > 0 ? (
+                  <Text style={styles.historyDistractionError}>⚠️ {item.distractionCount} Kayıp</Text>
+                ) : (
+                  <Text style={styles.historyDistractionSuccess}>✨ Tam Odak</Text>
+                )}
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noDataText}>Henüz oturum kaydı bulunmuyor.</Text>
+        )}
+      </View>
       
       <TouchableOpacity style={styles.clearButton} onPress={handleClearData}>
         <Text style={styles.clearButtonText}>Verileri Sıfırla</Text>
@@ -221,40 +248,31 @@ const styles = StyleSheet.create({
   dangerCard: { borderColor: '#ff7675', borderWidth: 1 },
   dangerText: { color: '#d63031' },
 
-  chartTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, marginTop: 10, color: '#444' },
+  chartTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, marginTop: 20, color: '#444' },
   
-  // Pasta Grafik ve Legend Stilleri
   pieContainer: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 10, elevation: 2 },
   
   customLegendContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap', 
-    justifyContent: 'center',
-    marginTop: 20,
-    gap: 15
+    width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, gap: 15
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-    minWidth: '40%' 
-  },
-  legendColorBox: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8
-  },
-  legendText: {
-    fontSize: 14,
-    color: '#555',
-    fontWeight: '600'
-  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, minWidth: '40%' },
+  legendColorBox: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
+  legendText: { fontSize: 14, color: '#555', fontWeight: '600' },
 
   barChart: { borderRadius: 16, marginVertical: 8 },
   noDataText: { textAlign: 'center', color: '#999', marginVertical: 20 },
   
-  clearButton: { backgroundColor: '#ff4757', padding: 15, borderRadius: 10, marginTop: 20, marginBottom: 40, alignItems: 'center' },
+  historyContainer: { backgroundColor: '#fff', borderRadius: 16, padding: 10, elevation: 2 },
+  historyItem: { 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' 
+  },
+  historyCategory: { fontSize: 16, fontWeight: '600', color: '#333' },
+  historyDate: { fontSize: 12, color: '#999', marginTop: 2 },
+  historyDuration: { fontSize: 16, fontWeight: 'bold', color: '#4A90E2' },
+  historyDistractionError: { fontSize: 12, color: '#e74c3c', fontWeight: '600' },
+  historyDistractionSuccess: { fontSize: 12, color: '#2ecc71', fontWeight: '600' },
+
+  clearButton: { backgroundColor: '#ff4757', padding: 15, borderRadius: 10, marginTop: 30, marginBottom: 40, alignItems: 'center' },
   clearButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
 });
