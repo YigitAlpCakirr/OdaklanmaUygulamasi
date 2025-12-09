@@ -29,11 +29,25 @@ export const getFocusSessions = async () => {
   }
 };
 
-// 3. (Opsiyonel) Tüm verileri temizleme - Test ederken işine yarar
+// 3. Tüm verileri temizleme 
 export const clearAllSessions = async () => {
   try {
     await AsyncStorage.removeItem('focusSessions');
   } catch(e) {
-    // hata yok sayılabilir
+  }
+};
+
+// ID'si verilen oturumu siler
+export const deleteFocusSession = async (sessionId) => {
+  try {
+    const existingData = await AsyncStorage.getItem('focusSessions');
+    let sessions = existingData ? JSON.parse(existingData) : [];
+    
+    const newSessions = sessions.filter(item => item.id !== sessionId);
+    
+    await AsyncStorage.setItem('focusSessions', JSON.stringify(newSessions));
+    console.log("Oturum silindi:", sessionId);
+  } catch (e) {
+    console.error("Silme hatası:", e);
   }
 };

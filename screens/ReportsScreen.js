@@ -1,8 +1,9 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
-import { clearAllSessions, getFocusSessions } from '../utils/storage';
+import { clearAllSessions, deleteFocusSession, getFocusSessions } from '../utils/storage';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -30,16 +31,35 @@ export default function ReportsScreen() {
 
   const handleClearData = async () => {
     Alert.alert(
-      "Verileri Temizle",
-      "Emin misiniz? Tüm istatistikler sıfırlanacak.",
+      "Tüm Verileri Temizle",
+      "Emin misiniz? Tüm istatistikler kalıcı olarak silinecek.",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        { 
+          text: "Hepsini Sil", 
+          style: "destructive", 
+          onPress: async () => {
+            await clearAllSessions();
+            loadData();
+          }
+        }
+      ]
+    );
+  };
+
+  // --- TEKİL SİLME FONKSİYONU ---
+  const handleDeleteItem = async (sessionId) => {
+    Alert.alert(
+      "Oturumu Sil",
+      "Bu kaydı silmek istediğine emin misin?",
       [
         { text: "Vazgeç", style: "cancel" },
         { 
           text: "Sil", 
           style: "destructive", 
           onPress: async () => {
-            await clearAllSessions();
-            loadData();
+            await deleteFocusSession(sessionId); 
+            loadData(); 
           }
         }
       ]
@@ -122,8 +142,6 @@ export default function ReportsScreen() {
     });
   };
 
-  // --- SON 10 SEANSI ALMA ---
-
   const lastSessions = sessions.slice().reverse().slice(0, 10);
 
   return (
@@ -146,9 +164,8 @@ export default function ReportsScreen() {
         </View>
       </View>
 
-      {/* 1. PASTA GRAFİK */}
+      {/* PASTA GRAFİK */}
       <Text style={styles.chartTitle}>Kategori Dağılımı</Text>
-      
       {stats.pieData.length > 0 ? (
         <View style={styles.pieContainer}>
           <PieChart
@@ -177,7 +194,7 @@ export default function ReportsScreen() {
         <Text style={styles.noDataText}>Henüz veri yok.</Text>
       )}
 
-      {/* 2. ÇUBUK GRAFİK */}
+      {/* ÇUBUK GRAFİK */}
       <Text style={styles.chartTitle}>Son 7 Gün (Dakika)</Text>
       <BarChart
         data={stats.barData}
@@ -190,22 +207,22 @@ export default function ReportsScreen() {
         fromZero
       />
 
-      {/* 3. SON 10 SEANS LİSTESİ */}
+      {/* SON 10 SEANS LİSTESİ */}
       <Text style={styles.chartTitle}>Son 10 Oturum</Text>
       <View style={styles.historyContainer}>
         {lastSessions.length > 0 ? (
-          lastSessions.map((item, index) => (
-            <View key={index} style={styles.historyItem}>
-              {/* Sol Taraf: Kategori ve Tarih */}
-              <View>
+          lastSessions.map((item) => (
+            <View key={item.id} style={styles.historyItem}>
+              {/* Sol Taraf: Bilgiler */}
+              <View style={{ flex: 1 }}>
                 <Text style={styles.historyCategory}>{item.category}</Text>
                 <Text style={styles.historyDate}>
                   {new Date(item.date).toLocaleDateString('tr-TR')} • {new Date(item.date).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}
                 </Text>
               </View>
 
-              {/* Sağ Taraf: Süre ve Odak Kaybı */}
-              <View style={{ alignItems: 'flex-end' }}>
+              {/* Orta Taraf: Süre */}
+              <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
                 <Text style={styles.historyDuration}>{formatDuration(item.duration)}</Text>
                 {item.distractionCount > 0 ? (
                   <Text style={styles.historyDistractionError}>⚠️ {item.distractionCount} Kayıp</Text>
@@ -213,6 +230,14 @@ export default function ReportsScreen() {
                   <Text style={styles.historyDistractionSuccess}>✨ Tam Odak</Text>
                 )}
               </View>
+
+              {/* Sağ Taraf: SİLME BUTONU */}
+              <TouchableOpacity 
+                onPress={() => handleDeleteItem(item.id)}
+                style={styles.deleteButton}
+              >
+                <MaterialIcons name="delete-outline" size={24} color="#ff4757" />
+              </TouchableOpacity>
             </View>
           ))
         ) : (
@@ -221,7 +246,7 @@ export default function ReportsScreen() {
       </View>
       
       <TouchableOpacity style={styles.clearButton} onPress={handleClearData}>
-        <Text style={styles.clearButtonText}>Verileri Sıfırla</Text>
+        <Text style={styles.clearButtonText}>Tüm Verileri Sıfırla</Text>
       </TouchableOpacity>
       
     </ScrollView>
@@ -251,10 +276,7 @@ const styles = StyleSheet.create({
   chartTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, marginTop: 20, color: '#444' },
   
   pieContainer: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 10, elevation: 2 },
-  
-  customLegendContainer: {
-    width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, gap: 15
-  },
+  customLegendContainer: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 20, gap: 15 },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, minWidth: '40%' },
   legendColorBox: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
   legendText: { fontSize: 14, color: '#555', fontWeight: '600' },
@@ -272,6 +294,13 @@ const styles = StyleSheet.create({
   historyDuration: { fontSize: 16, fontWeight: 'bold', color: '#4A90E2' },
   historyDistractionError: { fontSize: 12, color: '#e74c3c', fontWeight: '600' },
   historyDistractionSuccess: { fontSize: 12, color: '#2ecc71', fontWeight: '600' },
+
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fff0f0',
+    marginLeft: 5
+  },
 
   clearButton: { backgroundColor: '#ff4757', padding: 15, borderRadius: 10, marginTop: 30, marginBottom: 40, alignItems: 'center' },
   clearButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
