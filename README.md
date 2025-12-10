@@ -1,50 +1,53 @@
-# Welcome to your Expo app 👋
+# 🎯 Odaklanma ve Takip Uygulaması 
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Bu proje, Sakarya Üniversitesi Bilgisayar Mühendisliği Mobil Uygulama Geliştirme dersi dönem ödevi olarak geliştirilmiştir.
 
-## Get started
+## 📱 Proje Hakkında
+Günümüzdeki dijital dikkat dağınıklığı ile mücadele etmek amacıyla geliştirilen bu uygulama, Pomodoro tekniği benzeri bir yaklaşımla kullanıcıların odaklanma sürelerini takip eder.
 
-1. Install dependencies
+## ✨ Özellikler
 
-   ```bash
-   npm install
-   ```
+* **Özelleştirilebilir Sayaç:** Kullanıcı saat ve dakika bazında hedef süresini kendi belirleyebilir.
+* **Kategori Yönetimi:** Ders, Kodlama, Tasarım, Kitap Okuma gibi farklı kategorilerde çalışma imkanı.
+* **Dikkat Dağınıklığı Takibi (AppState):** Uygulama arka plana atıldığında (başka uygulamaya geçildiğinde) bu durum "dikkat dağınıklığı" olarak kaydedilir.
+* **Detaylı Raporlar:** * Günlük ve Toplam Çalışma Süreleri
+    * Kategori Bazlı Yüzdelik Dağılım (Pasta Grafik)
+    * Son 7 Günlük Performans (Çubuk Grafik)
+    * Son 10 Oturum Geçmişi Listesi 
+* **Veri Kaydı :** Tüm veriler `AsyncStorage` kullanılarak cihazda saklanır.
 
-2. Start the app
+## 🛠 Kullanılan Teknolojiler
 
-   ```bash
-   npx expo start
-   ```
+* **React Native (Expo)**
+* **React Navigation** (Tab Navigator)
+* **AsyncStorage** (Veri Saklama)
+* **React Native Chart Kit** (Grafikler)
+* **Expo Vector Icons**
 
-In the output, you'll find options to open the app in a
+## 🚀 Kurulum ve Çalıştırma
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Projeyi yerel ortamınızda çalıştırmak için aşağıdaki adımları izleyin:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+1.  Repoyu klonlayın:
+    ```bash
+    git clone [https://github.com/YigitAlpCakirr/OdaklanmaUygulamasi.git](https://github.com/YigitAlpCakirr/OdaklanmaUygulamasi.git)
+    ```
 
-## Get a fresh project
+2.  Proje dizinine gidin:
+    ```bash
+    cd OdaklanmaUygulamasi
+    ```
 
-When you're ready, run:
+3.  Gerekli paketleri yükleyin:
+    ```bash
+    npm install
+    ```
 
-```bash
-npm run reset-project
-```
+4.  Uygulamayı başlatın:
+    ```bash
+    npx expo start
+    ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 👤 Geliştirici
+* **Ad Soyad:** [Yiğit Alp ÇAKIR]
+* **Numara:** [G231210387]
